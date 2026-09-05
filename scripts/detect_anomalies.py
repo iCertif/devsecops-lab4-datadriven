@@ -3,30 +3,36 @@ import pandas as pd
 
 
 def analyze_logs():
-  df = pd.read_csv("data/access_logs.csv")
+  try:
+    df = pd.read_csv('data/access_logs.csv')
 
-  # 1. Détection Brute Force (> 5 échecs 401)
-  failed_logins = df[df["status_code"] == 401]
-  bf_attempts = failed_logins.groupby("ip_address").size()
-  suspicious_ips = bf_attempts[bf_attempts > 5].index.tolist()
+    # Conversion de la colonne status_code en numérique
+    df['status_code'] = pd.to_numeric(df['status_code'], errors='coerce')
 
-  # 2. Détection d'injection SQL
-  sqli_patterns = ["UNION", "SELECT", "OR 1=1", "'--", "DROP"]
-  pattern = "|".join(sqli_patterns)
-  sqli_attempts = df[
-      df["url"].str.contains(pattern, case=False, na=False)
-  ]
+    # 1. Détection Brute Force (IPs avec > 5 échecs HTTP 401)
+    failed_logins = df[df['status_code'] == 401]
+    bf_attempts = failed_logins.groupby('ip_address').size()
+    suspicious_ips = bf_attempts[bf_attempts > 5].index.tolist()
 
-  report = {
-      "total_logs_analyzed": len(df),
-      "brute_force_alerts": len(suspicious_ips),
-      "suspicious_ips": suspicious_ips,
-      "sqli_alerts": len(sqli_attempts),
-  }
+    # 2. Détection SQL Injection
+    sqli_keywords = ['UNION', 'SELECT', 'OR 1=1', '--', 'DROP']
+    pattern = '|'.join(sqli_keywords)
+    sqli_matches = df[df['url'].str.contains(pattern, case=False, na=False)]
 
-  print("=== RAPPORT D'ANALYSE DATA-DRIVEN SECURITY ===")
-  print(json.dumps(report, indent=2))
+    report = {
+        'total_logs_analyzed': int(len(df)),
+        'brute_force_alerts': int(len(suspicious_ips)),
+        'suspicious_ips': suspicious_ips,
+        'sqli_alerts': int(len(sqli_matches)),
+    }
+
+    print('=== RAPPORT D\'ANALYSE DATA-DRIVEN SECURITY ===')
+    print(json.dumps(report, indent=2))
+
+  except Exception as e:
+    print(f'Erreur lors de l\'analyse : {e}')
+    raise e
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   analyze_logs()
