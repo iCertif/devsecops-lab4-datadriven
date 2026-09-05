@@ -1,12 +1,17 @@
 import json
+from pathlib import Path
 import pandas as pd
 
 
 def analyze_logs():
   try:
-    df = pd.read_csv('data/access_logs.csv')
+    # Détermination du chemin absolu du fichier access_logs.csv
+    base_dir = Path(__file__).resolve().parent.parent
+    csv_path = base_dir / 'data' / 'access_logs.csv'
 
-    # Conversion de la colonne status_code en numérique
+    df = pd.read_csv(csv_path)
+
+    # Conversion de la colonne status_code
     df['status_code'] = pd.to_numeric(df['status_code'], errors='coerce')
 
     # 1. Détection Brute Force (IPs avec > 5 échecs HTTP 401)
